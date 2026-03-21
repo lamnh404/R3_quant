@@ -89,7 +89,7 @@ def run_eval(model_path, data_path, num_samples=50):
 
 if __name__ == "__main__":
     QUANTIZED_MODEL_PATH = r"./weights/Qwen2.5-VL-3B-Instruct-GPTQ-Int3"
-    DATA_PATH = r"./data/science_qa/test-00000-of-00001-f0e719df791966ff.parquet"
+    DATA_PATH = r"./data/science_qa/validation-00000-of-00001-6c7328ff6c84284c.parquet"
     
     eval_results = run_eval(QUANTIZED_MODEL_PATH, DATA_PATH, num_samples=20)
     
