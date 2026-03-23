@@ -2,9 +2,6 @@ import torch
 from datasets import Dataset
 
 def build_scienceqa_prompt(question: str, choices: list) -> str:
-    """
-    Transforms all types of questions (including Yes/No) into multiple-choice format (A, B, C...).
-    """
     prompt = f"{question}\n\nChoices:\n"
     labels = ["A", "B", "C", "D", "E"]
     
@@ -33,9 +30,6 @@ def build_scienceqa_prompt(question: str, choices: list) -> str:
     return prompt
 
 def prepare_scienceqa_for_grpo(raw_dataset, max_samples=None):
-    """
-    Filters and formats the ScienceQA dataset for the GRPO Trainer.
-    """
     formatted_data = {
         "prompt": [],    
         "ground_truth": [],
@@ -69,6 +63,47 @@ def prepare_scienceqa_for_grpo(raw_dataset, max_samples=None):
         formatted_data["prompt"].append(messages)
         formatted_data["ground_truth"].append(correct_letter)
         
+        count += 1 
+        
+    return Dataset.from_dict(formatted_data)
+
+def prepare_scienceqa_for_sft(raw_dataset, max_samples=None):
+    formatted_data = {"messages": []} 
+    
+    labels = ["A", "B", "C", "D", "E"]
+    count = 0 
+    
+    for item in raw_dataset:
+        if max_samples and count >= max_samples:
+            break
+            
+        if item["image"] is None:
+            continue
+            
+        text_prompt = build_scienceqa_prompt(item["question"], item["choices"])
+        user_message = {
+            "role": "user",
+            "content": [
+                {"type": "image", "image": item["image"]}, 
+                {"type": "text", "text": text_prompt}
+            ]
+        }
+        
+        correct_letter = labels[item["answer"]]
+        solution_text = item.get("solution", "Suy luận logic dựa trên hình ảnh.")
+        
+        assistant_text = (
+            f"<think>\n{solution_text}\n</think>\n"
+            f"<answer>{correct_letter}</answer>"
+        )
+        assistant_message = {
+            "role": "assistant",
+            "content": [
+                {"type": "text", "text": assistant_text}
+            ]
+        }
+        
+        formatted_data["messages"].append([user_message, assistant_message])
         count += 1 
         
     return Dataset.from_dict(formatted_data)

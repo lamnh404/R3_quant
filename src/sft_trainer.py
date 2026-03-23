@@ -1,57 +1,47 @@
 import torch
 import sys
 import os
-from trl import GRPOConfig, GRPOTrainer
+from trl import SFTConfig, SFTTrainer
 from transformers import AutoProcessor
 from datasets import load_dataset
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from model.lora_setup import apply_lora_to_quantized_model
-from src.rewards import format_reward_func, accuracy_reward_func
-from src.utils import prepare_scienceqa_for_grpo 
+from src.utils import prepare_scienceqa_for_sft 
 
-def train_r3_quant_grpo(model_dir: str, train_data, output_dir: str):
-
+def train_sft_baseline(model_dir: str, train_data, output_dir: str):
     processor = AutoProcessor.from_pretrained(model_dir)
 
     peft_model = apply_lora_to_quantized_model(model_dir)
     
-    grpo_dataset = prepare_scienceqa_for_grpo(train_data)
+    sft_dataset = prepare_scienceqa_for_sft(train_data)
 
-    training_args = GRPOConfig(
+    training_args = SFTConfig(
         output_dir=output_dir,
-        learning_rate=1e-6,
+        learning_rate=2e-5,          
         lr_scheduler_type="cosine",
         logging_steps=1,           
         max_steps=500,
         per_device_train_batch_size=1, 
         gradient_accumulation_steps=4,
         gradient_checkpointing=True, 
-        num_generations=4,         
-        max_prompt_length=512,
-        max_completion_length=1024,  
+        max_seq_length=1536,         
         bf16=True,                   
         remove_unused_columns=False, 
-        report_to="none"             
+        report_to="none",
+        dataset_kwargs={"skip_prepare_dataset": True} 
     )
 
-    reward_funcs = [
-        format_reward_func,
-        accuracy_reward_func
-    ]
-
-    trainer = GRPOTrainer(
+    trainer = SFTTrainer(
         model=peft_model,
         processing_class=processor,
-        reward_funcs=reward_funcs,
         args=training_args,
-        train_dataset=grpo_dataset,
+        train_dataset=sft_dataset,
     )
 
     trainer.train()
     
-    print(f"\nĐang lưu mô hình LoRA tại: {output_dir}")
     trainer.save_model(output_dir)
     processor.save_pretrained(output_dir) 
 
@@ -59,6 +49,6 @@ if __name__ == "__main__":
     raw_scienceqa = load_dataset("derek-thomas/ScienceQA", split="train[:10]")
     
     MODEL_DIR = r"./weights/Qwen2.5-VL-3B-Instruct-GPTQ-Int3" 
-    OUTPUT_DIR = r"./r3_quant_checkpoints"
+    OUTPUT_DIR = r"./sft_baseline_checkpoints" 
     
-    train_r3_quant_grpo(MODEL_DIR, raw_scienceqa, OUTPUT_DIR)
+    train_sft_baseline(MODEL_DIR, raw_scienceqa, OUTPUT_DIR)

@@ -103,6 +103,5 @@ if __name__ == "__main__":
     MODEL_PATH = r"./weights/Qwen2.5-VL-3B-Instruct-GPTQ-Int3"
     DATA_PATH = r"./data/science_qa/test-00000-of-00001-f0e719df791966ff.parquet"
     
-    # Test nhanh trên 50 câu hỏi trước
     evaluator = VLMQEvaluator(MODEL_PATH, DATA_PATH, num_samples=50)
     evaluator.evaluate()
