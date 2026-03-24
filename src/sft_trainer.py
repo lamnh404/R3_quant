@@ -26,7 +26,6 @@ def train_sft_baseline(model_dir: str, train_data, output_dir: str):
         per_device_train_batch_size=1, 
         gradient_accumulation_steps=4,
         gradient_checkpointing=True, 
-        max_seq_length=1536,         
         bf16=True,                   
         remove_unused_columns=False, 
         report_to="none",
