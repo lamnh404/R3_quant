@@ -68,7 +68,14 @@ def prepare_scienceqa_for_grpo(raw_dataset, max_samples=None):
     return Dataset.from_dict(formatted_data)
 
 def prepare_scienceqa_for_sft(raw_dataset, max_samples=None):
-    formatted_data = {"messages": []} 
+    """
+    Format dataset cho SFT: Tách biệt 'messages' và 'images' theo chuẩn thư viện TRL.
+    """
+    # 1. THÊM CỘT "images" riêng biệt
+    formatted_data = {
+        "messages": [], 
+        "images": [] 
+    }
     
     labels = ["A", "B", "C", "D", "E"]
     count = 0 
@@ -80,17 +87,19 @@ def prepare_scienceqa_for_sft(raw_dataset, max_samples=None):
         if item["image"] is None:
             continue
             
+        # 2. Câu hỏi của User (Chỉ để type="image" làm placeholder)
         text_prompt = build_scienceqa_prompt(item["question"], item["choices"])
         user_message = {
             "role": "user",
             "content": [
-                {"type": "image", "image": item["image"]}, 
+                {"type": "image"}, # QUAN TRỌNG: Xóa "image": item["image"] đi
                 {"type": "text", "text": text_prompt}
             ]
         }
         
+        # 3. Câu trả lời của Assistant
         correct_letter = labels[item["answer"]]
-        solution_text = item.get("solution", "Suy luận logic dựa trên hình ảnh.")
+        solution_text = item.get("solution", "Reasoning based on the image.")
         
         assistant_text = (
             f"<think>\n{solution_text}\n</think>\n"
@@ -103,7 +112,10 @@ def prepare_scienceqa_for_sft(raw_dataset, max_samples=None):
             ]
         }
         
+        # 4. Gom dữ liệu vào 2 cột riêng biệt
         formatted_data["messages"].append([user_message, assistant_message])
+        # QUAN TRỌNG: Cột images phải là một mảng (list) chứa các ảnh của hội thoại đó
+        formatted_data["images"].append([item["image"]]) 
         count += 1 
         
     return Dataset.from_dict(formatted_data)
