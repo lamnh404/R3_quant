@@ -120,9 +120,8 @@ if __name__ == "__main__":
     quant_acc, quant_preds = evaluate_model(QUANTIZED_MODEL_PATH, df)
 
     print("\n--- [3] ĐÁNH GIÁ MODEL SFT (INT3 + LoRA) ---")
-    # sft_acc, sft_preds = evaluate_model(QUANTIZED_MODEL_PATH, df, lora_path=SFT_MODEL_PATH)
+    sft_acc, sft_preds = evaluate_model(QUANTIZED_MODEL_PATH, df, lora_path=SFT_MODEL_PATH)
 
-    sft_acc, sft_preds = None, []
     
     print("\n" + "=" * 60)
     print(f"BẢNG VÀNG THÀNH TÍCH ({NUM_SAMPLES} MẪU)")
