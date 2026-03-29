@@ -108,7 +108,7 @@ if __name__ == "__main__":
     SFT_MODEL_PATH       = r"./sft_baseline_checkpoints"
 
     DATA_PATH   = r"./data/science_qa/validation-00000-of-00001-6c7328ff6c84284c.parquet"
-    NUM_SAMPLES = 1
+    NUM_SAMPLES = 500
 
     loader = ScienceQALocalLoader(DATA_PATH, subset_size=NUM_SAMPLES)
     df = loader.preprocess_for_r3_quant()
