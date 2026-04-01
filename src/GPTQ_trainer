@@ -1,0 +1,69 @@
+import torch
+import sys
+import os
+from trl import GRPOConfig, GRPOTrainer
+from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration
+from peft import get_peft_model, LoraConfig, TaskType
+from datasets import load_dataset
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from src.rewards import format_reward_func, accuracy_reward_func
+from src.utils import prepare_scienceqa_for_grpo
+
+def apply_lora_to_gptq_model(model_dir: str):
+    model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+        model_dir,
+        torch_dtype=torch.float16,   # GPTQ dùng float16
+        device_map="auto"
+    )
+    lora_config = LoraConfig(
+        task_type=TaskType.CAUSAL_LM,
+        r=16,
+        lora_alpha=32,
+        lora_dropout=0.05,
+        target_modules=["q_proj", "k_proj", "v_proj", "o_proj",
+                        "gate_proj", "up_proj", "down_proj"],
+        bias="none"
+    )
+    return get_peft_model(model, lora_config)
+
+def train_quan_gptq_grpo(model_dir: str, train_data, output_dir: str):
+    processor = AutoProcessor.from_pretrained(model_dir)
+    peft_model = apply_lora_to_gptq_model(model_dir)
+    peft_model.print_trainable_parameters()
+
+    grpo_dataset = prepare_scienceqa_for_grpo(train_data)
+    training_args = GRPOConfig(
+        output_dir=output_dir,
+        learning_rate=1e-6,
+        lr_scheduler_type="cosine",
+        logging_steps=1,
+        max_steps=500,
+        per_device_train_batch_size=1,
+        gradient_accumulation_steps=4,
+        gradient_checkpointing=True,
+        num_generations=4,
+        max_prompt_length=512,
+        max_completion_length=1024,
+        fp16=True,                   # GPTQ dùng fp16 thay vì bf16
+        remove_unused_columns=False,
+        report_to="none"
+    )
+    trainer = GRPOTrainer(
+        model=peft_model,
+        processing_class=processor,
+        reward_funcs=[format_reward_func, accuracy_reward_func],
+        args=training_args,
+        train_dataset=grpo_dataset,
+    )
+    trainer.train()
+
+    print(f"\nĐang lưu mô hình tại: {output_dir}")
+    trainer.save_model(output_dir)
+    processor.save_pretrained(output_dir)
+
+if __name__ == "__main__":
+    raw_scienceqa = load_dataset("derek-thomas/ScienceQA", split="validation")
+    MODEL_DIR  = r"./weights/Qwen2.5-VL-7B-Instruct-GPTQ-Int4"
+    OUTPUT_DIR = r"./checkpoints/quan_gptq_grpo_7b"
+    train_quan_gptq_grpo(MODEL_DIR, raw_scienceqa, OUTPUT_DIR)
