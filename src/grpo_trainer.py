@@ -9,8 +9,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.abspath(os.path.join(BASE_DIR, '..')))
 
 from model.lora_setup import apply_lora_to_quantized_model
-from src.rewards import format_reward_func, accuracy_reward_func
-from src.utils import prepare_scienceqa_for_grpo
+from rewards import format_reward_func, accuracy_reward_func
+from utils import prepare_scienceqa_for_grpo
 
 
 def train_quan_grpo(model_dir: str, train_data, output_dir: str):
