@@ -65,7 +65,7 @@ def train_quan_grpo(model_dir: str, train_data, output_dir: str):
 
 
 if __name__ == "__main__":
-    MODEL_DIR  = os.path.join(BASE_DIR, "..", "weights", "Qwen2.5-VL-7B-Instruct-GPTQ-Int4")
+    MODEL_DIR  = os.path.join(BASE_DIR, "..", "weights", "hfl", "Qwen2.5-VL-7B-Instruct-GPTQ-Int4")
     OUTPUT_DIR = os.path.join(BASE_DIR, "..", "checkpoints", "quan_grpo_7b")
 
     print("Loading ScienceQA dataset...")
